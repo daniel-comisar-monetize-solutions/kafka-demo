@@ -1,0 +1,37 @@
+package com.monetizesolutions.kafkademo
+
+import java.util.Properties
+import org.apache.kafka.clients.producer._
+import org.apache.kafka.common.KafkaException
+import org.apache.kafka.common.errors._
+import org.apache.kafka.common.serialization.StringSerializer
+
+object RandomProducer extends App { 
+  // TODO: read properties from arguments
+  val topic = "test"
+  val key = "0" // determines partition only
+  val numRecords = 50
+  var props = new Properties()
+  props.put("bootstrap.servers", "localhost:9092")
+  props.put("transactional.id", "my-transactional-id")
+
+  val producer = new KafkaProducer(props, new StringSerializer(), new StringSerializer())
+  producer.initTransactions()
+  try {
+    producer.beginTransaction()
+    for (_ <- 1 to numRecords) {
+      val record = MathRecord.random.toString
+      println(record)
+      producer.send(new ProducerRecord(topic, key, record))
+    }
+    producer.commitTransaction()
+  }
+  catch {
+    case e @ (_: ProducerFencedException | _: OutOfOrderSequenceException | _: AuthorizationException) =>
+      println("Fatal error, exiting: " + e)
+    case (e: KafkaException) =>
+      // TODO: retry transaction
+      println("Minor error, exiting: " + e)
+  }
+  producer.close()
+}
