@@ -3,6 +3,7 @@ package com.monetizesolutions.kafkademo
 import scala.util.Random
 
 class MathRecord(val variable: String, val value: Double) {
+  def key: Int = variable.hashCode
   override def toString: String = variable + "=" + value
 }
 
